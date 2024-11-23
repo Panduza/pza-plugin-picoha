@@ -1,12 +1,13 @@
 use super::connector::PicoHaDioConnector;
 use panduza_platform_core::spawn_on_command;
 use panduza_platform_core::BidirMsgAtt;
+use panduza_platform_core::Class;
 use panduza_platform_core::DeviceLogger;
-use panduza_platform_core::Interface;
+use panduza_platform_core::Error;
+use panduza_platform_core::Instance;
 use panduza_platform_core::StringCodec;
 use panduza_platform_core::StringListCodec;
 use panduza_platform_core::TaskResult;
-use panduza_platform_core::{Device, Error};
 
 ///
 ///
@@ -37,14 +38,14 @@ async fn on_direction_change(
 ///
 ///
 pub async fn create_direction_interface(
-    mut device: Device,
+    mut device: Instance,
     pico_connector: PicoHaDioConnector,
-    mut parent_interface: Interface,
+    mut parent_interface: Class,
     pin_num: u32,
 ) -> Result<(), Error> {
     //
     // Create interface direction
-    let mut direction = parent_interface.create_interface("direction").finish();
+    let mut direction = parent_interface.create_class("direction").finish();
 
     // meta : enum ?
 
@@ -117,14 +118,14 @@ async fn on_value_change(
 ///
 ///
 pub async fn create_value_interface(
-    mut device: Device,
+    mut device: Instance,
     pico_connector: PicoHaDioConnector,
-    mut parent_interface: Interface,
+    mut parent_interface: Class,
     pin_num: u32,
 ) -> Result<(), Error> {
     //
     // Create interface direction
-    let mut io_value_attr = parent_interface.create_interface("value").finish();
+    let mut io_value_attr = parent_interface.create_class("value").finish();
 
     // meta : enum ?
 
@@ -172,15 +173,15 @@ pub async fn create_value_interface(
 /// Create dio interface for a given pin number
 ///
 pub async fn create_dio_interface(
-    device: Device,
+    device: Instance,
     pico_connector: PicoHaDioConnector,
-    mut parent_interface: Interface,
+    mut parent_interface: Class,
     pin_num: u32,
 ) -> Result<(), Error> {
     //
     // Register interface
     let dio_interface = parent_interface
-        .create_interface(format!("{}", pin_num))
+        .create_class(format!("{}", pin_num))
         .finish();
 
     //

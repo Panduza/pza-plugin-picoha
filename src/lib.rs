@@ -9,3 +9,11 @@ pub fn plugin_producers() -> Vec<Box<dyn Producer>> {
     producers.push(dio::producer::PiochaDio::new());
     return producers;
 }
+
+//
+//
+pub fn plugin_scanners() -> Vec<Box<dyn Scanner>> {
+    let mut scanners: Vec<Box<dyn Scanner>> = vec![];
+    // scanners.push(scanner::KoradScanner::default().boxed());
+    return scanners;
+}

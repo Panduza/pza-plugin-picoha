@@ -1,28 +1,23 @@
-use std::fmt::format;
-use std::sync::Arc;
-use std::time::Duration;
-
+use super::connector::PicoHaDioConnector;
+use super::dio_interface::create_dio_interface;
 use async_trait::async_trait;
-
 use panduza_platform_connectors::serial::slip::get as get_connector;
 use panduza_platform_connectors::serial::slip::Connector;
-
 use panduza_platform_connectors::SerialSettings;
 use panduza_platform_connectors::UsbSettings;
 use panduza_platform_core::spawn_on_command;
 use panduza_platform_core::BidirMsgAtt;
+use panduza_platform_core::Class;
 use panduza_platform_core::DeviceLogger;
-use panduza_platform_core::Interface;
 use panduza_platform_core::StringCodec;
 use panduza_platform_core::StringListCodec;
 use panduza_platform_core::TaskResult;
-use panduza_platform_core::{Device, DeviceOperations, Error};
+use panduza_platform_core::{DriverOperations, Error, Instance};
 use serde_json::json;
+use std::fmt::format;
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::time::sleep;
-
-use super::connector::PicoHaDioConnector;
-
-use super::dio_interface::create_dio_interface;
 
 static PICOHA_VENDOR_ID: u16 = 0x16c0;
 static PICOHA_PRODUCT_ID: u16 = 0x05e1;
@@ -65,7 +60,7 @@ impl PicoHaDioDevice {
     ///
     /// Prepare settings of the device
     ///
-    pub async fn prepare_settings(&mut self, device: Device) -> Result<(), Error> {
+    pub async fn prepare_settings(&mut self, device: Instance) -> Result<(), Error> {
         // Get the device logger
         let logger = device.logger.clone();
 
@@ -165,7 +160,7 @@ impl PicoHaDioDevice {
 }
 
 #[async_trait]
-impl DeviceOperations for PicoHaDioDevice {
+impl DriverOperations for PicoHaDioDevice {
     ///
     ///
     ///
