@@ -1,33 +1,32 @@
-use panduza_platform_connectors::serial::slip::Connector;
+use super::api_dio::{PicohaDioAnswer, PicohaDioRequest, PinValue, RequestType};
+use crate::dio::api_dio::AnswerType;
+use futures::lock::Mutex;
+use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
 use panduza_platform_core::{DeviceLogger, Error};
 use prost::Message;
-
-use crate::dio::api_dio::AnswerType;
-
-use super::api_dio::{PicohaDioAnswer, PicohaDioRequest, PinValue, RequestType};
+use std::sync::Arc;
 
 ///
 /// Connector dedicated to the picoha dio communication
 ///
-#[derive(Clone)]
-pub struct PicoHaDioConnector {
+pub struct PicoHaDioDriver {
     ///
     /// Device logger
     logger: DeviceLogger,
 
     ///
     /// Connector to communicate with the pico
-    connector: Connector,
+    low_driver: SerialSlipDriver,
 }
 
-impl PicoHaDioConnector {
+impl PicoHaDioDriver {
     ///
     /// Constructor
     ///
-    pub fn new(logger: DeviceLogger, connector: Connector) -> Self {
-        PicoHaDioConnector {
+    pub fn new(logger: DeviceLogger, low_driver: SerialSlipDriver) -> Self {
+        PicoHaDioDriver {
             logger: logger,
-            connector: connector,
+            low_driver: low_driver,
         }
     }
 

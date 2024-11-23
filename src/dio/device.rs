@@ -1,10 +1,5 @@
-use super::connector::PicoHaDioConnector;
 use super::dio_interface::create_dio_interface;
 use async_trait::async_trait;
-use panduza_platform_connectors::serial::slip::get as get_connector;
-use panduza_platform_connectors::serial::slip::Connector;
-use panduza_platform_connectors::SerialSettings;
-use panduza_platform_connectors::UsbSettings;
 use panduza_platform_core::spawn_on_command;
 use panduza_platform_core::BidirMsgAtt;
 use panduza_platform_core::Class;
@@ -57,106 +52,106 @@ impl PicoHaDioDevice {
         }
     }
 
-    ///
-    /// Prepare settings of the device
-    ///
-    pub async fn prepare_settings(&mut self, device: Instance) -> Result<(), Error> {
-        // Get the device logger
-        let logger = device.logger.clone();
+    // ///
+    // /// Prepare settings of the device
+    // ///
+    // pub async fn prepare_settings(&mut self, instance: Instance) -> Result<(), Error> {
+    //     // Get the device logger
+    //     let logger = instance.logger.clone();
 
-        // Get the device settings
-        let json_settings = device.settings().await.or(Some(json!({}))).unwrap();
+    //     // Get the device settings
+    //     let json_settings = instance.settings().await.or(Some(json!({}))).unwrap();
 
-        // Log debug info
-        logger.info("Build interfaces for \"picoha.dio\" device");
-        logger.info(format!("JSON settings: {:?}", json_settings));
+    //     // Log debug info
+    //     logger.info("Build interfaces for \"picoha.dio\" device");
+    //     logger.info(format!("JSON settings: {:?}", json_settings));
 
-        // Usb settings
-        let usb_settings = UsbSettings::new()
-            .set_vendor(PICOHA_VENDOR_ID)
-            .set_model(PICOHA_PRODUCT_ID)
-            .optional_set_serial_from_json_settings(&json_settings);
-        logger.info(format!("USB settings: {}", usb_settings));
+    //     // Usb settings
+    //     let usb_settings = UsbSettings::new()
+    //         .set_vendor(PICOHA_VENDOR_ID)
+    //         .set_model(PICOHA_PRODUCT_ID)
+    //         .optional_set_serial_from_json_settings(&json_settings);
+    //     logger.info(format!("USB settings: {}", usb_settings));
 
-        // Serial settings
-        self.serial_settings = Some(
-            SerialSettings::new()
-                .set_port_name_from_json_or_usb_settings(&json_settings, &usb_settings)
-                .map_err(|e| Error::Generic(e.to_string()))?
-                .set_baudrate(PICOHA_SERIAL_BAUDRATE),
-        );
+    //     // Serial settings
+    //     self.serial_settings = Some(
+    //         SerialSettings::new()
+    //             .set_port_name_from_json_or_usb_settings(&json_settings, &usb_settings)
+    //             .map_err(|e| Error::Generic(e.to_string()))?
+    //             .set_baudrate(PICOHA_SERIAL_BAUDRATE),
+    //     );
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    ///
-    /// Try to mount the connector to reach the device
-    ///
-    pub async fn mount_connector(&mut self) -> Result<(), Error> {
-        //
-        // Recover settings
-        let settings = self.serial_settings.as_ref().ok_or(Error::BadSettings(
-            "Serial Settings not provided".to_string(),
-        ))?;
-        //
-        // Try to get connector
-        self.connector = Some(
-            get_connector(settings)
-                .await
-                .map_err(|e| Error::Generic(e.to_string()))?,
-        );
-        //
-        // Try to init it
-        self.connector
-            .as_ref()
-            .ok_or(Error::BadSettings(
-                "Connector is not initialized".to_string(),
-            ))?
-            .lock()
-            .await
-            .init()
-            .await
-            .map_err(|e| Error::Generic(e.to_string()))?;
+    // ///
+    // /// Try to mount the connector to reach the device
+    // ///
+    // pub async fn mount_connector(&mut self) -> Result<(), Error> {
+    //     //
+    //     // Recover settings
+    //     let settings = self.serial_settings.as_ref().ok_or(Error::BadSettings(
+    //         "Serial Settings not provided".to_string(),
+    //     ))?;
+    //     //
+    //     // Try to get connector
+    //     self.connector = Some(
+    //         get_connector(settings)
+    //             .await
+    //             .map_err(|e| Error::Generic(e.to_string()))?,
+    //     );
+    //     //
+    //     // Try to init it
+    //     self.connector
+    //         .as_ref()
+    //         .ok_or(Error::BadSettings(
+    //             "Connector is not initialized".to_string(),
+    //         ))?
+    //         .lock()
+    //         .await
+    //         .init()
+    //         .await
+    //         .map_err(|e| Error::Generic(e.to_string()))?;
 
-        //
-        self.pico_connector = Some(PicoHaDioConnector::new(
-            self.logger.as_ref().unwrap().clone(),
-            self.connector.as_ref().unwrap().clone(),
-        ));
+    //     //
+    //     self.pico_connector = Some(PicoHaDioConnector::new(
+    //         self.logger.as_ref().unwrap().clone(),
+    //         self.connector.as_ref().unwrap().clone(),
+    //     ));
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    ///
-    /// Create io interfaces
-    ///
-    pub async fn create_io_interfaces(&mut self, mut device: Device) -> Result<(), Error> {
-        // Get the device logger
-        let logger = device.logger.clone();
+    // ///
+    // /// Create io interfaces
+    // ///
+    // pub async fn create_io_interfaces(&mut self, mut instance: Instance) -> Result<(), Error> {
+    //     // Get the device logger
+    //     let logger = instance.logger.clone();
 
-        //
-        // Register interface
-        let interface = device.create_interface("io").finish();
+    //     //
+    //     // Register interface
+    //     let interface = instance.create_class("io").finish();
 
-        //
-        //
-        // let mut array = Vec::new();
-        for n in 0..5 {
-            // Debug log
-            logger.debug(format!("Create io_{}", n));
+    //     //
+    //     //
+    //     // let mut array = Vec::new();
+    //     for n in 0..5 {
+    //         // Debug log
+    //         logger.debug(format!("Create io_{}", n));
 
-            //
-            create_dio_interface(
-                device.clone(),
-                self.pico_connector.clone().unwrap(),
-                interface.clone(),
-                n,
-            )
-            .await?;
-        }
+    //         //
+    //         create_dio_interface(
+    //             instance.clone(),
+    //             self.pico_connector.clone().unwrap(),
+    //             interface.clone(),
+    //             n,
+    //         )
+    //         .await?;
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 #[async_trait]
@@ -164,15 +159,15 @@ impl DriverOperations for PicoHaDioDevice {
     ///
     ///
     ///
-    async fn mount(&mut self, mut device: Device) -> Result<(), Error> {
+    async fn mount(&mut self, mut instance: Instance) -> Result<(), Error> {
         //
         // Init logger
-        self.logger = Some(device.logger.clone());
+        self.logger = Some(instance.logger.clone());
 
-        self.prepare_settings(device.clone()).await?;
-        self.mount_connector().await?;
+        // self.prepare_settings(instance.clone()).await?;
+        // self.mount_connector().await?;
 
-        self.create_io_interfaces(device.clone()).await?;
+        // self.create_io_interfaces(instance.clone()).await?;
 
         // self.pico_get_direction(2).await?;
 
@@ -190,7 +185,7 @@ impl DriverOperations for PicoHaDioDevice {
     ///
     /// Easiest way to implement the reboot event
     ///
-    async fn wait_reboot_event(&mut self, mut device: Device) {
+    async fn wait_reboot_event(&mut self, mut instance: Instance) {
         sleep(Duration::from_secs(5)).await;
     }
 }
