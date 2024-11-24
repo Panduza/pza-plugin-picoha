@@ -1,4 +1,4 @@
-use super::connector::PicoHaDioConnector;
+use super::driver::PicoHaDioDriver;
 use panduza_platform_core::spawn_on_command;
 use panduza_platform_core::BidirMsgAtt;
 use panduza_platform_core::Class;
@@ -165,46 +165,6 @@ pub async fn create_value_interface(
 
     // read a first time here then only set when a new value arrive
     value.set("low").await?;
-
-    Ok(())
-}
-
-///
-/// Create dio interface for a given pin number
-///
-pub async fn create_dio_interface(
-    device: Instance,
-    pico_connector: PicoHaDioConnector,
-    mut parent_interface: Class,
-    pin_num: u32,
-) -> Result<(), Error> {
-    //
-    // Register interface
-    let dio_interface = parent_interface
-        .create_class(format!("{}", pin_num))
-        .finish();
-
-    //
-    //
-    create_direction_interface(
-        device.clone(),
-        pico_connector.clone(),
-        dio_interface.clone(),
-        pin_num,
-    )
-    .await?;
-
-    //
-    //
-    create_value_interface(
-        device.clone(),
-        pico_connector.clone(),
-        dio_interface.clone(),
-        pin_num,
-    )
-    .await?;
-
-    // io_%d/trigger_read    (boolean) start an input reading (oneshot)
 
     Ok(())
 }

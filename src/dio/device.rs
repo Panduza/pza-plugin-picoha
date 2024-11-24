@@ -1,8 +1,11 @@
-use super::dio_interface::create_dio_interface;
+use super::driver::PicoHaDioDriver;
+use super::driver::TSafePicoHaDioDriver;
 use async_trait::async_trait;
+use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
+use panduza_platform_core::drivers::serial::Settings as SerialSettings;
+use panduza_platform_core::drivers::usb::Settings as UsbSettings;
 use panduza_platform_core::spawn_on_command;
 use panduza_platform_core::BidirMsgAtt;
-use panduza_platform_core::Class;
 use panduza_platform_core::DeviceLogger;
 use panduza_platform_core::StringCodec;
 use panduza_platform_core::StringListCodec;
@@ -12,6 +15,7 @@ use serde_json::json;
 use std::fmt::format;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 
 static PICOHA_VENDOR_ID: u16 = 0x16c0;
@@ -22,21 +26,19 @@ static PICOHA_SERIAL_BAUDRATE: u32 = 9600; // We do not care... it is USB serial
 /// Device to control PicoHA Dio Board
 ///
 pub struct PicoHaDioDevice {
-    ///
-    /// Device logger
-    logger: Option<DeviceLogger>,
+    //
+    // Device logger
+    // logger: Option<DeviceLogger>,
 
-    ///
-    /// Serial settings to connect to the pico
-    serial_settings: Option<SerialSettings>,
+    //
+    // Serial settings to connect to the pico
+    // serial_settings: Option<SerialSettings>,
 
-    ///
-    /// Connector to communicate with the pico
-    connector: Option<Connector>,
+    //
+    // Connector to communicate with the pico
+    // connector: Option<Connector>,
 
-    ///
-    ///
-    pico_connector: Option<PicoHaDioConnector>,
+    // dio_driver: Option<Arc<Mutex<PicoHaDioDriver>>>,
 }
 
 impl PicoHaDioDevice {
@@ -44,45 +46,46 @@ impl PicoHaDioDevice {
     /// Constructor
     ///
     pub fn new() -> Self {
-        PicoHaDioDevice {
-            logger: None,
-            serial_settings: None,
-            connector: None,
-            pico_connector: None,
-        }
+        PicoHaDioDevice {}
     }
 
-    // ///
-    // /// Prepare settings of the device
-    // ///
-    // pub async fn prepare_settings(&mut self, instance: Instance) -> Result<(), Error> {
-    //     // Get the device logger
-    //     let logger = instance.logger.clone();
+    ///
+    /// Prepare settings of the device
+    ///
+    pub async fn open_driver(&mut self, instance: Instance) -> Result<TSafePicoHaDioDriver, Error> {
+        // Get the device logger
+        let logger = instance.logger.clone();
 
-    //     // Get the device settings
-    //     let json_settings = instance.settings().await.or(Some(json!({}))).unwrap();
+        // Get the device settings
+        let json_settings = instance.settings().await.or(Some(json!({}))).unwrap();
 
-    //     // Log debug info
-    //     logger.info("Build interfaces for \"picoha.dio\" device");
-    //     logger.info(format!("JSON settings: {:?}", json_settings));
+        // Log debug info
+        logger.info("Build interfaces for \"picoha.dio\" device");
+        logger.info(format!("JSON settings: {:?}", json_settings));
 
-    //     // Usb settings
-    //     let usb_settings = UsbSettings::new()
-    //         .set_vendor(PICOHA_VENDOR_ID)
-    //         .set_model(PICOHA_PRODUCT_ID)
-    //         .optional_set_serial_from_json_settings(&json_settings);
-    //     logger.info(format!("USB settings: {}", usb_settings));
+        // Usb settings
+        let usb_settings = UsbSettings::new()
+            .set_vendor(PICOHA_VENDOR_ID)
+            .set_model(PICOHA_PRODUCT_ID)
+            .optional_set_serial_from_json_settings(&json_settings);
+        logger.info(format!("USB settings: {}", usb_settings));
 
-    //     // Serial settings
-    //     self.serial_settings = Some(
-    //         SerialSettings::new()
-    //             .set_port_name_from_json_or_usb_settings(&json_settings, &usb_settings)
-    //             .map_err(|e| Error::Generic(e.to_string()))?
-    //             .set_baudrate(PICOHA_SERIAL_BAUDRATE),
-    //     );
+        // Serial settings
+        let serial_settings = SerialSettings::new()
+            .set_port_name_from_json_or_usb_settings(&json_settings, &usb_settings)
+            .map_err(|e| Error::Generic(e.to_string()))?
+            .set_baudrate(PICOHA_SERIAL_BAUDRATE);
 
-    //     Ok(())
-    // }
+        let low_driver = SerialSlipDriver::open(&serial_settings)?;
+
+        // let driver = PicoHaDioDriver::open(settings, vec![b'\n'])?;
+
+        // let kdriver = KoradDriver::new(driver);
+
+        // Ok(Arc::new(Mutex::new(kdriver)))
+
+        Ok(())
+    }
 
     // ///
     // /// Try to mount the connector to reach the device
@@ -114,7 +117,7 @@ impl PicoHaDioDevice {
     //         .map_err(|e| Error::Generic(e.to_string()))?;
 
     //     //
-    //     self.pico_connector = Some(PicoHaDioConnector::new(
+    //     self.driver = Some(PicoHaDioConnector::new(
     //         self.logger.as_ref().unwrap().clone(),
     //         self.connector.as_ref().unwrap().clone(),
     //     ));
@@ -130,10 +133,6 @@ impl PicoHaDioDevice {
     //     let logger = instance.logger.clone();
 
     //     //
-    //     // Register interface
-    //     let interface = instance.create_class("io").finish();
-
-    //     //
     //     //
     //     // let mut array = Vec::new();
     //     for n in 0..5 {
@@ -143,7 +142,7 @@ impl PicoHaDioDevice {
     //         //
     //         create_dio_interface(
     //             instance.clone(),
-    //             self.pico_connector.clone().unwrap(),
+    //             self.driver.clone().unwrap(),
     //             interface.clone(),
     //             n,
     //         )
@@ -162,10 +161,24 @@ impl DriverOperations for PicoHaDioDevice {
     async fn mount(&mut self, mut instance: Instance) -> Result<(), Error> {
         //
         // Init logger
-        self.logger = Some(instance.logger.clone());
+        // self.logger = Some(instance.logger.clone());
 
         // self.prepare_settings(instance.clone()).await?;
         // self.mount_connector().await?;
+
+        //
+        // Create pin class
+        let class_pin = instance.create_class("pin").finish();
+
+        //
+        //
+        for pin_num in 0..5 {
+            // // Debug log
+            // logger.debug(format!("Create io_{}", n));
+
+            //
+            super::pin::mount(instance, driver, class_pin, pin_num).await?;
+        }
 
         // self.create_io_interfaces(instance.clone()).await?;
 

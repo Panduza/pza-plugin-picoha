@@ -1,10 +1,11 @@
+use std::sync::Arc;
+
 use super::api_dio::{PicohaDioAnswer, PicohaDioRequest, PinValue, RequestType};
 use crate::dio::api_dio::AnswerType;
-use futures::lock::Mutex;
 use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
 use panduza_platform_core::{DeviceLogger, Error};
 use prost::Message;
-use std::sync::Arc;
+use tokio::sync::Mutex;
 
 ///
 /// Connector dedicated to the picoha dio communication
@@ -18,6 +19,8 @@ pub struct PicoHaDioDriver {
     /// Connector to communicate with the pico
     low_driver: SerialSlipDriver,
 }
+
+pub type TSafePicoHaDioDriver = Arc<Mutex<PicoHaDioDriver>>;
 
 impl PicoHaDioDriver {
     ///
@@ -34,7 +37,7 @@ impl PicoHaDioDriver {
     /// Send a request and get the answer
     ///
     async fn send_then_receive(
-        &self,
+        &mut self,
         request: &PicohaDioRequest,
     ) -> Result<PicohaDioAnswer, Error> {
         // Get the data vector
@@ -47,9 +50,7 @@ impl PicoHaDioDriver {
         // Send and receive
         let answer_buffer = &mut [0u8; 1024];
         let size = self
-            .connector
-            .lock()
-            .await
+            .low_driver
             .write_then_read(data_vec, answer_buffer)
             .await
             .map_err(|e| Error::Generic(e.to_string()))?;
@@ -72,7 +73,7 @@ impl PicoHaDioDriver {
     ///
     /// Communicate with the pico to get the pin direction
     ///
-    pub async fn pico_get_direction(&self, pin_num: u32) -> Result<String, Error> {
+    pub async fn pico_get_direction(&mut self, pin_num: u32) -> Result<String, Error> {
         // Debug log
         self.logger
             .debug(format!("pico_get_direction({:?})", pin_num));
@@ -107,7 +108,11 @@ impl PicoHaDioDriver {
     ///
     ///
     ///
-    pub async fn pico_set_direction(&self, pin_num: u32, direction: String) -> Result<(), Error> {
+    pub async fn pico_set_direction(
+        &mut self,
+        pin_num: u32,
+        direction: String,
+    ) -> Result<(), Error> {
         // Debug log
         self.logger.debug(format!(
             "pico_set_direction({:?}, {:?})",
@@ -144,7 +149,7 @@ impl PicoHaDioDriver {
     ///
     ///
     ///
-    pub async fn pico_get_value(&self, pin_num: u32) -> Result<String, Error> {
+    pub async fn pico_get_value(&mut self, pin_num: u32) -> Result<String, Error> {
         // Debug log
         self.logger.debug(format!("pico_get_value({:?})", pin_num));
 
@@ -178,7 +183,7 @@ impl PicoHaDioDriver {
     ///
     ///
     ///
-    pub async fn pico_set_value(&self, pin_num: u32, direction: String) -> Result<(), Error> {
+    pub async fn pico_set_value(&mut self, pin_num: u32, direction: String) -> Result<(), Error> {
         // Debug log
         self.logger
             .debug(format!("pico_set_value({:?}, {:?})", pin_num, direction));
