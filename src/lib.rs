@@ -13,7 +13,7 @@ pub fn plugin_producers() -> Vec<Box<dyn Producer>> {
 //
 //
 pub fn plugin_scanners() -> Vec<Box<dyn Scanner>> {
-    let mut scanners: Vec<Box<dyn Scanner>> = vec![];
+    let scanners: Vec<Box<dyn Scanner>> = vec![];
     // scanners.push(scanner::KoradScanner::default().boxed());
     return scanners;
 }
