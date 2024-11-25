@@ -1,6 +1,7 @@
 panduza_platform_core::plugin_interface!("picoha");
 
 mod dio;
+mod scanner;
 
 // Export the producers of the plugin
 //
@@ -13,7 +14,7 @@ pub fn plugin_producers() -> Vec<Box<dyn Producer>> {
 //
 //
 pub fn plugin_scanners() -> Vec<Box<dyn Scanner>> {
-    let scanners: Vec<Box<dyn Scanner>> = vec![];
-    // scanners.push(scanner::KoradScanner::default().boxed());
+    let mut scanners: Vec<Box<dyn Scanner>> = vec![];
+    scanners.push(scanner::PicohaScanner::default().boxed());
     return scanners;
 }
