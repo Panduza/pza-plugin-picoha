@@ -20,6 +20,8 @@ pub struct PicoHaDioDriver {
     low_driver: SerialSlipDriver,
 }
 
+/// Thread Safe
+///
 pub type TSafePicoHaDioDriver = Arc<Mutex<PicoHaDioDriver>>;
 
 impl PicoHaDioDriver {
@@ -31,6 +33,10 @@ impl PicoHaDioDriver {
             logger: logger,
             low_driver: low_driver,
         }
+    }
+
+    pub fn into_tsafe(self) -> TSafePicoHaDioDriver {
+        Arc::new(Mutex::new(self))
     }
 
     ///

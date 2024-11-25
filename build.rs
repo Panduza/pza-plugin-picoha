@@ -1,11 +1,8 @@
-
-use std::io::Result;
-use std::path::Path;
 use std::env;
 use std::fs;
+use std::path::Path;
 
 fn main() {
-    
     let out_dir = env::var("OUT_DIR").unwrap();
     let source = format!("{}/_.rs", out_dir);
 
@@ -18,7 +15,4 @@ fn main() {
         prost_build::compile_protos(&[dio_proto_path], &["src/"]).unwrap();
         fs::rename(source, target).unwrap();
     }
-    
-    
 }
-

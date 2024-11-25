@@ -4,18 +4,9 @@ use async_trait::async_trait;
 use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
 use panduza_platform_core::drivers::serial::Settings as SerialSettings;
 use panduza_platform_core::drivers::usb::Settings as UsbSettings;
-use panduza_platform_core::spawn_on_command;
-use panduza_platform_core::BidirMsgAtt;
-use panduza_platform_core::DeviceLogger;
-use panduza_platform_core::StringCodec;
-use panduza_platform_core::StringListCodec;
-use panduza_platform_core::TaskResult;
 use panduza_platform_core::{DriverOperations, Error, Instance};
 use serde_json::json;
-use std::fmt::format;
-use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
 use tokio::time::sleep;
 
 static PICOHA_VENDOR_ID: u16 = 0x16c0;
@@ -78,79 +69,10 @@ impl PicoHaDioDevice {
 
         let low_driver = SerialSlipDriver::open(&serial_settings)?;
 
-        // let driver = PicoHaDioDriver::open(settings, vec![b'\n'])?;
+        let driver = PicoHaDioDriver::new(logger, low_driver).into_tsafe();
 
-        // let kdriver = KoradDriver::new(driver);
-
-        // Ok(Arc::new(Mutex::new(kdriver)))
-
-        Ok(())
+        Ok(driver)
     }
-
-    // ///
-    // /// Try to mount the connector to reach the device
-    // ///
-    // pub async fn mount_connector(&mut self) -> Result<(), Error> {
-    //     //
-    //     // Recover settings
-    //     let settings = self.serial_settings.as_ref().ok_or(Error::BadSettings(
-    //         "Serial Settings not provided".to_string(),
-    //     ))?;
-    //     //
-    //     // Try to get connector
-    //     self.connector = Some(
-    //         get_connector(settings)
-    //             .await
-    //             .map_err(|e| Error::Generic(e.to_string()))?,
-    //     );
-    //     //
-    //     // Try to init it
-    //     self.connector
-    //         .as_ref()
-    //         .ok_or(Error::BadSettings(
-    //             "Connector is not initialized".to_string(),
-    //         ))?
-    //         .lock()
-    //         .await
-    //         .init()
-    //         .await
-    //         .map_err(|e| Error::Generic(e.to_string()))?;
-
-    //     //
-    //     self.driver = Some(PicoHaDioConnector::new(
-    //         self.logger.as_ref().unwrap().clone(),
-    //         self.connector.as_ref().unwrap().clone(),
-    //     ));
-
-    //     Ok(())
-    // }
-
-    // ///
-    // /// Create io interfaces
-    // ///
-    // pub async fn create_io_interfaces(&mut self, mut instance: Instance) -> Result<(), Error> {
-    //     // Get the device logger
-    //     let logger = instance.logger.clone();
-
-    //     //
-    //     //
-    //     // let mut array = Vec::new();
-    //     for n in 0..5 {
-    //         // Debug log
-    //         logger.debug(format!("Create io_{}", n));
-
-    //         //
-    //         create_dio_interface(
-    //             instance.clone(),
-    //             self.driver.clone().unwrap(),
-    //             interface.clone(),
-    //             n,
-    //         )
-    //         .await?;
-    //     }
-
-    //     Ok(())
-    // }
 }
 
 #[async_trait]
@@ -163,8 +85,9 @@ impl DriverOperations for PicoHaDioDevice {
         // Init logger
         // self.logger = Some(instance.logger.clone());
 
-        // self.prepare_settings(instance.clone()).await?;
-        // self.mount_connector().await?;
+        //
+        //
+        let driver = self.open_driver(instance.clone()).await?;
 
         //
         // Create pin class
@@ -177,28 +100,15 @@ impl DriverOperations for PicoHaDioDevice {
             // logger.debug(format!("Create io_{}", n));
 
             //
-            super::pin::mount(instance, driver, class_pin, pin_num).await?;
+            super::pin::mount(instance.clone(), driver.clone(), class_pin.clone(), pin_num).await?;
         }
-
-        // self.create_io_interfaces(instance.clone()).await?;
-
-        // self.pico_get_direction(2).await?;
-
-        // une interface pour chaque io_%d
-        //
-        // io_%d/direction              meta : enum
-        // io_%d/direction/choices      list of string
-        // io_%d/direction/value        string
-        // io_%d/value           (enum/string) set/get (when input cannot be set)
-        // io_%d/trigger_read    (boolean) start an input reading (oneshot)
-        //
 
         Ok(())
     }
     ///
     /// Easiest way to implement the reboot event
     ///
-    async fn wait_reboot_event(&mut self, mut instance: Instance) {
+    async fn wait_reboot_event(&mut self, mut _instance: Instance) {
         sleep(Duration::from_secs(5)).await;
     }
 }
