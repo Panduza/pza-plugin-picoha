@@ -22,27 +22,7 @@ pub async fn mount(
     // Mount direction
     direction::mount(instance.clone(), driver.clone(), class_pin.clone(), pin_num).await?;
 
-    // //
-    // //
-    // create_direction_interface(
-    //     device.clone(),
-    //     pico_connector.clone(),
-    //     dio_interface.clone(),
-    //     pin_num,
-    // )
-    // .await?;
-
-    // //
-    // //
-    // create_value_interface(
-    //     device.clone(),
-    //     pico_connector.clone(),
-    //     dio_interface.clone(),
-    //     pin_num,
-    // )
-    // .await?;
-
-    // io_%d/trigger_read    (boolean) start an input reading (oneshot)
+    value::mount(instance.clone(), driver.clone(), class_pin.clone(), pin_num).await?;
 
     Ok(())
 }

@@ -10,8 +10,7 @@ crate-type = ["lib", "cdylib"]
 [dependencies]
 
 # The panduza core library
-panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core", branch = "slip_driver", features = [
-    "log",
+panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core", tag = "0.1.8", features = [
     "serial",
 ] }
 
@@ -35,9 +34,7 @@ bytes = "1.0.1"
 
 [package.metadata.cargo-post.dependencies]
 
-panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core", features = [
-    "log",
-] }
+panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core", tag = "0.1.8" }
 
 
 [build-dependencies]
@@ -46,5 +43,6 @@ prost-build = { version = "0.13.1" }
 
 [features]
 
-# Enable tracing in stdout
-log = []
+# Enable this if you want to build this driver as a dynamic plugin
+# 
+plugin = []

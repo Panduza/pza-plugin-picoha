@@ -1,6 +1,6 @@
 use crate::dio::driver::TSafePicoHaDioDriver;
 use panduza_platform_core::{
-    log_error, spawn_on_command, Class, DeviceLogger, EnumAttServer, Error, Instance,
+    log_error, spawn_on_command, Class, EnumAttServer, Error, Instance, InstanceLogger,
 };
 
 ///
@@ -29,6 +29,7 @@ pub async fn mount(
     let logger_2 = instance.logger.clone();
     let att_value_2 = att_value.clone();
     spawn_on_command!(
+        "on_command => value",
         instance,
         att_value_2,
         on_command(
@@ -46,7 +47,7 @@ pub async fn mount(
 ///
 ///
 async fn on_command(
-    logger: DeviceLogger,
+    logger: InstanceLogger,
     driver: TSafePicoHaDioDriver,
     mut att_value: EnumAttServer,
     pin_num: u32,
