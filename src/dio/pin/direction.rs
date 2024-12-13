@@ -1,6 +1,6 @@
 use crate::dio::driver::TSafePicoHaDioDriver;
 use panduza_platform_core::{
-    log_error, spawn_on_command, Class, EnumAttServer, Error, Instance, InstanceLogger,
+    log_debug, log_error, spawn_on_command, Class, EnumAttServer, Error, Instance, InstanceLogger,
 };
 
 ///
@@ -13,16 +13,22 @@ pub async fn mount(
     pin_num: u32,
 ) -> Result<(), Error> {
     //
-    // Create interface direction
-    // let mut direction = parent_class.create_class("direction").finish();
-
-    // direction
+    //
+    let logger = instance
+        .logger
+        .new_attribute_logger(format!("pin/{}", pin_num), "direction");
+    log_debug!(logger, "Mounting...");
 
     let att_dir = parent_class
         .create_attribute("direction")
         .with_rw()
         .finish_as_enum(vec!["input".to_string(), "output".to_string()])
         .await?;
+
+    //
+    //
+    let read_direction = driver.lock().await.pico_get_direction(pin_num).await?;
+    att_dir.set(read_direction).await?;
 
     //
     // Execute action on each command received
@@ -35,6 +41,9 @@ pub async fn mount(
         on_command(logger_2.clone(), driver.clone(), att_dir_2.clone(), pin_num)
     );
 
+    //
+    // End
+    log_debug!(logger, "Mounting => OK");
     Ok(())
 }
 

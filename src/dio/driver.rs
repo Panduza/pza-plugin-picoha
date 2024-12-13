@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::api_dio::{PicohaDioAnswer, PicohaDioRequest, PinValue, RequestType};
 use crate::dio::api_dio::AnswerType;
 use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
-use panduza_platform_core::{Error, InstanceLogger};
+use panduza_platform_core::{log_trace, Error, InstanceLogger};
 use prost::Message;
 use tokio::sync::Mutex;
 
@@ -46,28 +46,34 @@ impl PicoHaDioDriver {
         &mut self,
         request: &PicohaDioRequest,
     ) -> Result<PicohaDioAnswer, Error> {
+        //
         // Get the data vector
         let data_vec = &request.encode_to_vec();
 
-        // Debug log
-        // self.logger
-        //     .debug(format!("Send request data {:?}", data_vec));
+        //
+        //
+        log_trace!(
+            self.logger,
+            "Send request data on serial port {:?}",
+            data_vec
+        );
 
+        //
         // Send and receive
         let answer_buffer = &mut [0u8; 1024];
         let size = self
             .low_driver
             .write_then_read(data_vec, answer_buffer)
-            .await
-            .map_err(|e| Error::Generic(e.to_string()))?;
+            .await?;
 
         // Decode the answer
         let answer_slice = answer_buffer[..size].as_ref();
 
-        // Debug log
-        // self.logger
-        //     .debug(format!("Received {} bytes -> {:?}", size, answer_slice));
+        //
+        //
+        log_trace!(self.logger, "Received {} bytes -> {:?}", size, answer_slice);
 
+        //
         // Decode
         let answer = PicohaDioAnswer::decode(answer_slice)
             .map_err(|_| Error::Generic("invalid direction value".to_string()))?;
@@ -80,9 +86,9 @@ impl PicoHaDioDriver {
     /// Communicate with the pico to get the pin direction
     ///
     pub async fn pico_get_direction(&mut self, pin_num: u32) -> Result<String, Error> {
-        // Debug log
-        self.logger
-            .debug(format!("pico_get_direction({:?})", pin_num));
+        //
+        //
+        log_trace!(self.logger, "pico_get_direction(pin={:?})", pin_num);
 
         // Create the request
         let mut request = PicohaDioRequest::default();
@@ -93,7 +99,7 @@ impl PicoHaDioDriver {
         let answer = self.send_then_receive(&request).await?;
 
         // Debug log
-        self.logger.debug(format!("decoded {:?}", answer));
+        log_trace!(self.logger, "decoded {:?}", answer);
 
         if answer.value.is_none() {
             return Err(Error::Generic("Answer from pico has no value".to_string()));
