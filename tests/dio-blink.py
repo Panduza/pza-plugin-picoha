@@ -3,7 +3,6 @@ import logging
 from panduza import Reactor
 
 """
-This test suppose that only 1 KD3005P is on the bench
 """
 
 # Start logging
@@ -16,34 +15,28 @@ r.start()
 print("connection ok")
 
 
-pin_4_dir = r.attribute_from_name("pin/4/direction")
-pin_5_dir = r.attribute_from_name("pin/5/direction")
+led_couple = [ [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19], [20, 21] ]
 
-pin_4_dir.set("output")
-pin_5_dir.set("output")
+delay_time = 0.25
 
-pin_4_val = r.attribute_from_name("pin/4/value")
-pin_5_val = r.attribute_from_name("pin/5/value")
+for couple in led_couple:
+    pa = couple[0]
+    pb = couple[1]
+    print(f"Testing pins {pa} and {pb}")
 
-pin_4_val.set("low")
-pin_5_val.set("high")
+    pin_a_dir = r.attribute_from_name(f"pin/{pa}/direction")
+    pin_b_dir = r.attribute_from_name(f"pin/{pb}/direction")
 
-# output_enable_control.set(True)
-# time.sleep(1)
-# output_enable_control.set(False)
-# time.sleep(1)
+    pin_a_dir.set("output")
+    pin_b_dir.set("output")
 
-# # 
-# step = 1
-# if voltage_control.decimals() != 0:
-#     step = 1 / (10 ** voltage_control.decimals())
+    pin_a_val = r.attribute_from_name(f"pin/{pa}/value")
+    pin_b_val = r.attribute_from_name(f"pin/{pb}/value")
 
-
-# i = voltage_control.min()
-# while i <= voltage_control.max():
-#     print(f"set voltage to {i}{voltage_control.unit()}")
-#     i += step
-#     voltage_control.set(i)
-
-
-# voltage_control.set(25)
+    for _ in range(2):
+        pin_a_val.set("low")
+        pin_b_val.set("high")
+        time.sleep(delay_time)
+        pin_b_val.set("low")
+        pin_a_val.set("high")
+        time.sleep(delay_time)

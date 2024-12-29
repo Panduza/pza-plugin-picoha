@@ -13,7 +13,7 @@ use super::driver::TSafePicoHaDioDriver;
 pub async fn mount<C: Container>(
     mut parent: C,
     interface: TSafePicoHaDioDriver,
-    pin_num: u32,
+    pin_num: usize,
 ) -> Result<(), Error> {
     //
     // Register interface

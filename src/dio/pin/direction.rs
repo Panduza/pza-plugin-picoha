@@ -10,7 +10,7 @@ use panduza_platform_core::{
 pub async fn mount<C: Container>(
     mut parent: C,
     interface: TSafePicoHaDioDriver,
-    pin_num: u32,
+    pin_num: usize,
 ) -> Result<(), Error> {
     //
     //
@@ -49,7 +49,7 @@ pub async fn mount<C: Container>(
 async fn on_command(
     mut att_dir: EnumAttServer,
     interface: TSafePicoHaDioDriver,
-    pin_num: u32,
+    pin_num: usize,
 ) -> Result<(), Error> {
     while let Some(command) = att_dir.pop_cmd().await {
         let logger = att_dir.logger();

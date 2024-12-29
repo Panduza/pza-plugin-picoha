@@ -9,7 +9,7 @@ use panduza_platform_core::{
 pub async fn mount<C: Container>(
     mut parent: C,
     interface: TSafePicoHaDioDriver,
-    pin_num: u32,
+    pin_num: usize,
 ) -> Result<(), Error> {
     //
     // Create the attribute
@@ -42,7 +42,7 @@ pub async fn mount<C: Container>(
 async fn on_command(
     mut att_value: EnumAttServer,
     interface: TSafePicoHaDioDriver,
-    pin_num: u32,
+    pin_num: usize,
 ) -> Result<(), Error> {
     while let Some(command) = att_value.pop_cmd().await {
         let logger = att_value.logger();

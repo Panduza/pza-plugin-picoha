@@ -4,7 +4,10 @@ use async_trait::async_trait;
 use panduza_platform_core::connector::serial::slip::Driver as SerialSlipDriver;
 use panduza_platform_core::connector::serial::Settings as SerialSettings;
 use panduza_platform_core::connector::usb::Settings as UsbSettings;
+use panduza_platform_core::log_debug_mount_start;
 use panduza_platform_core::log_info;
+use panduza_platform_core::log_info_mount_end;
+use panduza_platform_core::log_info_mount_start;
 use panduza_platform_core::Container;
 use panduza_platform_core::{DriverOperations, Error, Instance};
 use serde_json::json;
@@ -86,7 +89,7 @@ impl DriverOperations for PicoHaDioDevice {
         //
         // Init logger
         let logger = instance.logger.clone();
-        log_info!(logger, "Mounting...");
+        log_info_mount_start!(logger);
 
         //
         //
@@ -98,11 +101,19 @@ impl DriverOperations for PicoHaDioDevice {
 
         //
         //
-        for pin_num in 3..10 {
+        let available_pins: Vec<usize> = (0..22)
+            .filter(|&pin| pin != 23 && pin != 24 && pin != 25)
+            .collect();
+
+        //
+        //
+        for pin_num in available_pins {
             super::pin::mount(class_pin.clone(), driver.clone(), pin_num).await?;
         }
 
-        log_info!(logger, "Mount => ok");
+        //
+        // End
+        log_info_mount_end!(logger);
         Ok(())
     }
     ///

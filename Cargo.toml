@@ -24,9 +24,9 @@ async-trait = "0.1.77"
 # Futures support
 futures = "0.3.17"
 # 
-prost = "0.13.1"
+prost = "0.13.4"
 # Only necessary if using Protobuf well-known types:
-prost-types = "0.13.1"
+prost-types = "0.13.4"
 
 bytes = "1.0.1"
 
@@ -35,7 +35,7 @@ bytes = "1.0.1"
 panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core" }
 
 [build-dependencies]
-prost-build = { version = "0.13.1" }
+prost-build = { version = "0.13.4" }
 
 [features]
 
