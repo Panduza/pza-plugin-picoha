@@ -1,4 +1,4 @@
-use panduza_platform_core::drivers::serial::Settings as SerialSettings;
+use panduza_platform_core::connector::serial::Settings as SerialSettings;
 use panduza_platform_core::ProductionOrder;
 use panduza_platform_core::Scanner;
 

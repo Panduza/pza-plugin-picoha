@@ -1,45 +1,40 @@
 use crate::dio::driver::TSafePicoHaDioDriver;
 use panduza_platform_core::{
-    log_error, spawn_on_command, Class, EnumAttServer, Error, Instance, InstanceLogger,
+    log_debug_mount_end, log_debug_mount_start, log_error, log_trace, spawn_on_command, Container,
+    EnumAttServer, Error,
 };
 
 ///
 ///
 ///
-pub async fn mount(
-    mut instance: Instance,
-    driver: TSafePicoHaDioDriver,
-    mut parent_class: Class,
+pub async fn mount<C: Container>(
+    mut parent: C,
+    interface: TSafePicoHaDioDriver,
     pin_num: u32,
 ) -> Result<(), Error> {
     //
-    // Create interface direction
-    // let mut direction = parent_class.create_class("direction").finish();
-
-    // direction
-
-    let att_value = parent_class
+    //
+    let att_value = parent
         .create_attribute("value")
         .with_rw()
         .finish_as_enum(vec!["low".to_string(), "high".to_string()])
         .await?;
+    let logger = att_value.logger();
+    log_debug_mount_start!(logger);
 
     //
     // Execute action on each command received
-    let logger_2 = instance.logger.clone();
     let att_value_2 = att_value.clone();
     spawn_on_command!(
         "on_command => value",
-        instance,
+        parent,
         att_value_2,
-        on_command(
-            logger_2.clone(),
-            driver.clone(),
-            att_value_2.clone(),
-            pin_num
-        )
+        on_command(att_value_2.clone(), interface.clone(), pin_num)
     );
 
+    //
+    // End
+    log_debug_mount_end!(logger);
     Ok(())
 }
 
@@ -47,15 +42,15 @@ pub async fn mount(
 ///
 ///
 async fn on_command(
-    logger: InstanceLogger,
-    driver: TSafePicoHaDioDriver,
     mut att_value: EnumAttServer,
+    driver: TSafePicoHaDioDriver,
     pin_num: u32,
 ) -> Result<(), Error> {
     while let Some(command) = att_value.pop_cmd().await {
+        let logger = att_value.logger();
         match command {
             Ok(v) => {
-                logger.debug(format!("set direction command {:?}", v));
+                log_trace!(logger, "set direction command {:?}", v);
 
                 let mut driver_lock = driver.lock().await;
                 driver_lock.pico_set_value(pin_num, v).await?;

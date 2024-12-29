@@ -1,10 +1,11 @@
 use super::driver::PicoHaDioDriver;
 use super::driver::TSafePicoHaDioDriver;
 use async_trait::async_trait;
-use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
-use panduza_platform_core::drivers::serial::Settings as SerialSettings;
-use panduza_platform_core::drivers::usb::Settings as UsbSettings;
+use panduza_platform_core::connector::serial::slip::Driver as SerialSlipDriver;
+use panduza_platform_core::connector::serial::Settings as SerialSettings;
+use panduza_platform_core::connector::usb::Settings as UsbSettings;
 use panduza_platform_core::log_info;
+use panduza_platform_core::Container;
 use panduza_platform_core::{DriverOperations, Error, Instance};
 use serde_json::json;
 use std::time::Duration;
@@ -93,12 +94,12 @@ impl DriverOperations for PicoHaDioDevice {
 
         //
         // Create pin class
-        let class_pin = instance.create_class("pin").finish();
+        let class_pin = instance.create_class("pin").finish().await;
 
         //
         //
         for pin_num in 3..10 {
-            super::pin::mount(instance.clone(), driver.clone(), class_pin.clone(), pin_num).await?;
+            super::pin::mount(class_pin.clone(), driver.clone(), pin_num).await?;
         }
 
         log_info!(logger, "Mount => ok");

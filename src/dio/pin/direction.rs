@@ -1,49 +1,45 @@
 use crate::dio::driver::TSafePicoHaDioDriver;
 use panduza_platform_core::{
-    log_debug, log_error, spawn_on_command, Class, EnumAttServer, Error, Instance, InstanceLogger,
+    log_debug_mount_end, log_debug_mount_start, log_error, log_trace, spawn_on_command, Container,
+    EnumAttServer, Error,
 };
 
 ///
 ///
 ///
-pub async fn mount(
-    mut instance: Instance,
-    driver: TSafePicoHaDioDriver,
-    mut parent_class: Class,
+pub async fn mount<C: Container>(
+    mut parent: C,
+    interface: TSafePicoHaDioDriver,
     pin_num: u32,
 ) -> Result<(), Error> {
     //
     //
-    let logger = instance
-        .logger
-        .new_attribute_logger(format!("pin/{}", pin_num), "direction");
-    log_debug!(logger, "Mounting...");
-
-    let att_dir = parent_class
+    let att_dir = parent
         .create_attribute("direction")
         .with_rw()
         .finish_as_enum(vec!["input".to_string(), "output".to_string()])
         .await?;
+    let logger = att_dir.logger();
+    log_debug_mount_start!(logger);
 
     //
     //
-    let read_direction = driver.lock().await.pico_get_direction(pin_num).await?;
+    let read_direction = interface.lock().await.pico_get_direction(pin_num).await?;
     att_dir.set(read_direction).await?;
 
     //
     // Execute action on each command received
-    let logger_2 = instance.logger.clone();
     let att_dir_2 = att_dir.clone();
     spawn_on_command!(
         "on_command => direction",
-        instance,
+        parent,
         att_dir_2,
-        on_command(logger_2.clone(), driver.clone(), att_dir_2.clone(), pin_num)
+        on_command(att_dir_2.clone(), interface.clone(), pin_num)
     );
 
     //
     // End
-    log_debug!(logger, "Mounting => OK");
+    log_debug_mount_end!(logger);
     Ok(())
 }
 
@@ -51,17 +47,21 @@ pub async fn mount(
 ///
 ///
 async fn on_command(
-    logger: InstanceLogger,
-    driver: TSafePicoHaDioDriver,
     mut att_dir: EnumAttServer,
+    interface: TSafePicoHaDioDriver,
     pin_num: u32,
 ) -> Result<(), Error> {
     while let Some(command) = att_dir.pop_cmd().await {
+        let logger = att_dir.logger();
         match command {
             Ok(v) => {
-                logger.debug(format!("set direction command {:?}", v));
+                //
+                //
+                log_trace!(logger, "set direction command {:?}", v);
 
-                let mut driver_lock = driver.lock().await;
+                //
+                //
+                let mut driver_lock = interface.lock().await;
                 driver_lock.pico_set_direction(pin_num, v).await?;
                 let read_direction = driver_lock.pico_get_direction(pin_num).await?;
                 drop(driver_lock);

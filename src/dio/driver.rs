@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use super::api_dio::{PicohaDioAnswer, PicohaDioRequest, PinValue, RequestType};
 use crate::dio::api_dio::AnswerType;
-use panduza_platform_core::drivers::serial::slip::Driver as SerialSlipDriver;
-use panduza_platform_core::{log_trace, Error, InstanceLogger};
+use panduza_platform_core::connector::serial::slip::Driver as SerialSlipDriver;
+use panduza_platform_core::{log_trace, Error, Logger};
 use prost::Message;
 use tokio::sync::Mutex;
 
@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 pub struct PicoHaDioDriver {
     ///
     /// Device logger
-    logger: InstanceLogger,
+    logger: Logger,
 
     ///
     /// Connector to communicate with the pico
@@ -28,7 +28,7 @@ impl PicoHaDioDriver {
     ///
     /// Constructor
     ///
-    pub fn new(logger: InstanceLogger, low_driver: SerialSlipDriver) -> Self {
+    pub fn new(logger: Logger, low_driver: SerialSlipDriver) -> Self {
         PicoHaDioDriver {
             logger: logger,
             low_driver: low_driver,
