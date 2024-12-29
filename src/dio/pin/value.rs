@@ -4,8 +4,7 @@ use panduza_platform_core::{
     EnumAttServer, Error,
 };
 
-///
-///
+/// Mount the value attribute
 ///
 pub async fn mount<C: Container>(
     mut parent: C,
@@ -13,7 +12,7 @@ pub async fn mount<C: Container>(
     pin_num: u32,
 ) -> Result<(), Error> {
     //
-    //
+    // Create the attribute
     let att_value = parent
         .create_attribute("value")
         .with_rw()
@@ -38,25 +37,39 @@ pub async fn mount<C: Container>(
     Ok(())
 }
 
-///
-///
+/// Execute the recieved command
 ///
 async fn on_command(
     mut att_value: EnumAttServer,
-    driver: TSafePicoHaDioDriver,
+    interface: TSafePicoHaDioDriver,
     pin_num: u32,
 ) -> Result<(), Error> {
     while let Some(command) = att_value.pop_cmd().await {
         let logger = att_value.logger();
         match command {
             Ok(v) => {
-                log_trace!(logger, "set direction command {:?}", v);
+                //
+                // debug
+                log_trace!(logger, "set value command {:?}", v);
 
-                let mut driver_lock = driver.lock().await;
-                driver_lock.pico_set_value(pin_num, v).await?;
-                let read_direction = driver_lock.pico_get_value(pin_num).await?;
-                drop(driver_lock);
+                //
+                // Lock the interface
+                let mut interface_lock = interface.lock().await;
 
+                //
+                // Set the value
+                interface_lock.pico_set_value(pin_num, v).await?;
+
+                //
+                // Read back the value
+                let read_direction = interface_lock.pico_get_value(pin_num).await?;
+
+                //
+                // Unlock the interface
+                drop(interface_lock);
+
+                //
+                // Confirm the value has been set
                 att_value.set(read_direction).await?;
             }
             Err(e) => {
