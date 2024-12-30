@@ -102,6 +102,7 @@ impl DriverOperations for PicoHaDioDevice {
         //
         //
         let available_pins: Vec<usize> = (0..22)
+            .filter(|&pin| pin != 0 && pin != 1)
             .filter(|&pin| pin != 23 && pin != 24 && pin != 25)
             .collect();
 

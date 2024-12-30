@@ -66,6 +66,12 @@ async fn on_command(
                 let read_direction = driver_lock.pico_get_direction(pin_num).await?;
                 drop(driver_lock);
 
+                //
+                //
+                log_trace!(logger, "read back {:?}", read_direction);
+
+                //
+                //
                 att_dir.set(read_direction).await?;
             }
             Err(e) => {

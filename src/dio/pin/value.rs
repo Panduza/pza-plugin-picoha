@@ -69,6 +69,10 @@ async fn on_command(
                 drop(interface_lock);
 
                 //
+                // debug
+                log_trace!(logger, "read back {:?}", read_direction);
+
+                //
                 // Confirm the value has been set
                 att_value.set(read_direction).await?;
             }
