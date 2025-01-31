@@ -1,70 +1,87 @@
-use panduza_platform_connectors::serial::slip::Connector;
-use panduza_platform_core::{DeviceLogger, Error};
-use prost::Message;
-
-use crate::dio::api_dio::AnswerType;
+use std::sync::Arc;
 
 use super::api_dio::{PicohaDioAnswer, PicohaDioRequest, PinValue, RequestType};
+use crate::dio::api_dio::AnswerType;
+use panduza_platform_core::connector::serial::slip::Driver as SerialSlipDriver;
+use panduza_platform_core::{log_trace, Error, Logger};
+use prost::Message;
+use tokio::sync::Mutex;
 
 ///
 /// Connector dedicated to the picoha dio communication
 ///
-#[derive(Clone)]
-pub struct PicoHaDioConnector {
+pub struct PicoHaDioDriver {
     ///
     /// Device logger
-    logger: DeviceLogger,
+    logger: Logger,
 
     ///
     /// Connector to communicate with the pico
-    connector: Connector,
+    low_driver: SerialSlipDriver,
 }
 
-impl PicoHaDioConnector {
+/// Thread Safe
+///
+pub type TSafePicoHaDioDriver = Arc<Mutex<PicoHaDioDriver>>;
+
+impl PicoHaDioDriver {
     ///
     /// Constructor
     ///
-    pub fn new(logger: DeviceLogger, connector: Connector) -> Self {
-        PicoHaDioConnector {
+    pub fn new(logger: Logger, low_driver: SerialSlipDriver) -> Self {
+        PicoHaDioDriver {
             logger: logger,
-            connector: connector,
+            low_driver: low_driver,
         }
+    }
+
+    pub fn into_tsafe(self) -> TSafePicoHaDioDriver {
+        Arc::new(Mutex::new(self))
     }
 
     ///
     /// Send a request and get the answer
     ///
     async fn send_then_receive(
-        &self,
+        &mut self,
         request: &PicohaDioRequest,
     ) -> Result<PicohaDioAnswer, Error> {
+        //
         // Get the data vector
         let data_vec = &request.encode_to_vec();
 
-        // Debug log
-        // self.logger
-        //     .debug(format!("Send request data {:?}", data_vec));
+        //
+        //
+        log_trace!(
+            self.logger,
+            "Send request data on serial port {:?}",
+            data_vec
+        );
 
+        //
         // Send and receive
         let answer_buffer = &mut [0u8; 1024];
         let size = self
-            .connector
-            .lock()
-            .await
+            .low_driver
             .write_then_read(data_vec, answer_buffer)
-            .await
-            .map_err(|e| Error::Generic(e.to_string()))?;
+            .await?;
 
-        // Decode the answer
+        //
+        //
         let answer_slice = answer_buffer[..size].as_ref();
 
-        // Debug log
-        // self.logger
-        //     .debug(format!("Received {} bytes -> {:?}", size, answer_slice));
+        //
+        //
+        log_trace!(self.logger, "Received {} bytes -> {:?}", size, answer_slice);
 
+        //
         // Decode
         let answer = PicohaDioAnswer::decode(answer_slice)
             .map_err(|_| Error::Generic("invalid direction value".to_string()))?;
+
+        //
+        //
+        log_trace!(self.logger, "Decode answer {:?}", answer);
 
         // Return the decoded answer
         Ok(answer)
@@ -73,21 +90,21 @@ impl PicoHaDioConnector {
     ///
     /// Communicate with the pico to get the pin direction
     ///
-    pub async fn pico_get_direction(&self, pin_num: u32) -> Result<String, Error> {
-        // Debug log
-        self.logger
-            .debug(format!("pico_get_direction({:?})", pin_num));
+    pub async fn pico_get_direction(&mut self, pin_num: usize) -> Result<String, Error> {
+        //
+        //
+        log_trace!(self.logger, "pico_get_direction(pin={:?})", pin_num);
 
         // Create the request
         let mut request = PicohaDioRequest::default();
         request.set_type(RequestType::GetPinDirection);
-        request.pin_num = pin_num;
+        request.pin_num = pin_num as u32;
 
         // Communication with the pico
         let answer = self.send_then_receive(&request).await?;
 
         // Debug log
-        self.logger.debug(format!("decoded {:?}", answer));
+        log_trace!(self.logger, "decoded {:?}", answer);
 
         if answer.value.is_none() {
             return Err(Error::Generic("Answer from pico has no value".to_string()));
@@ -108,18 +125,22 @@ impl PicoHaDioConnector {
     ///
     ///
     ///
-    pub async fn pico_set_direction(&self, pin_num: u32, direction: String) -> Result<(), Error> {
-        // Debug log
-        self.logger.debug(format!(
-            "pico_set_direction({:?}, {:?})",
-            pin_num, direction
-        ));
+    pub async fn pico_set_direction(
+        &mut self,
+        pin_num: usize,
+        direction: String,
+    ) -> Result<(), Error> {
+        // // Debug log
+        // self.logger.debug(format!(
+        //     "pico_set_direction({:?}, {:?})",
+        //     pin_num, direction
+        // ));
 
         //
         // Create the request
         let mut request = PicohaDioRequest::default();
         request.set_type(RequestType::SetPinDirection);
-        request.pin_num = pin_num;
+        request.pin_num = pin_num as u32;
 
         if direction == "input" {
             request.value = PinValue::Input.into();
@@ -130,7 +151,7 @@ impl PicoHaDioConnector {
         // Communication with the pico
         let answer = self.send_then_receive(&request).await?;
 
-        println!("{:?}", answer);
+        // println!("{:?}", answer);
 
         AnswerType::try_from(answer.r#type)
             .map_err(|e| Error::Generic("Unable to parse answer type".to_string()))
@@ -145,15 +166,18 @@ impl PicoHaDioConnector {
     ///
     ///
     ///
-    pub async fn pico_get_value(&self, pin_num: u32) -> Result<String, Error> {
+    pub async fn pico_get_value(&mut self, pin_num: usize) -> Result<String, Error> {
+        //
         // Debug log
-        self.logger.debug(format!("pico_get_value({:?})", pin_num));
+        log_trace!(self.logger, "pico_get_value({:?})", pin_num);
 
+        //
         // Create the request
         let mut request = PicohaDioRequest::default();
         request.set_type(RequestType::GetPinValue);
-        request.pin_num = pin_num;
+        request.pin_num = pin_num as u32;
 
+        //
         // Communication with the pico
         let answer = self.send_then_receive(&request).await?;
 
@@ -161,7 +185,8 @@ impl PicoHaDioConnector {
         self.logger.debug(format!("decoded {:?}", answer));
 
         if answer.value.is_none() {
-            return Err(Error::Generic("Answer from pico has no value".to_string()));
+            // return Err(Error::Generic("Answer from pico has no value".to_string()));
+            return Ok("low".to_string());
         }
 
         // Convert direction answer into a string value
@@ -179,16 +204,16 @@ impl PicoHaDioConnector {
     ///
     ///
     ///
-    pub async fn pico_set_value(&self, pin_num: u32, direction: String) -> Result<(), Error> {
-        // Debug log
-        self.logger
-            .debug(format!("pico_set_value({:?}, {:?})", pin_num, direction));
+    pub async fn pico_set_value(&mut self, pin_num: usize, direction: String) -> Result<(), Error> {
+        // // Debug log
+        // self.logger
+        //     .debug(format!("pico_set_value({:?}, {:?})", pin_num, direction));
 
         //
         // Create the request
         let mut request = PicohaDioRequest::default();
         request.set_type(RequestType::SetPinValue);
-        request.pin_num = pin_num;
+        request.pin_num = pin_num as u32;
 
         if direction == "low" {
             request.value = PinValue::Low.into();
@@ -199,7 +224,7 @@ impl PicoHaDioConnector {
         // Communication with the pico
         let answer = self.send_then_receive(&request).await?;
 
-        println!("{:?}", answer);
+        // println!("{:?}", answer);
 
         AnswerType::try_from(answer.r#type)
             .map_err(|e| Error::Generic("Unable to parse answer type".to_string()))
