@@ -1,7 +1,7 @@
 [package]
 name = "pza-plugin-picoha"
 edition = "2021"
-version = "0.1.0"
+version = "0.1.1"
 
 [lib]
 path = "src/lib.rs"
@@ -11,7 +11,7 @@ crate-type = ["lib", "cdylib"]
 [dependencies]
 
 # The panduza core library
-panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core", tag = "0.2.0", features = [
+panduza-platform-core = { git = "https://github.com/Panduza/panduza-platform-core", tag = "0.2.3", features = [
     "serial",
 ] }
 # The panduza connectors library
